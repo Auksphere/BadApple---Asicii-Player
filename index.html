@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bad Apple!! ASCII Art Player</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #ascii-container {
+            white-space: pre;
+            line-height: 0.8;
+            font-size: 10px;
+            text-align: center;
+            max-width: 100vw;
+            max-height: 100vh;
+            overflow: hidden;
+            letter-spacing: 0;
+        }
+
+        #controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 5px 10px;
+            margin: 2px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+
+        button:hover {
+            background: #555;
+        }
+
+        button:active {
+            background: #777;
+        }
+
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            z-index: 1000;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #info {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            font-size: 11px;
+            color: #888;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div>Loading Bad Apple ASCII Data...</div>
+        <div id="loadingText">Initializing...</div>
+    </div>
+    
+    <div id="controls" class="hidden">
+        <button id="playBtn">⏸️ Pause</button>
+        <button id="restartBtn">🔄 Restart</button>
+        <br>
+        <span id="frameInfo">Frame: 0/0</span>
+        <br>
+        <span id="timeInfo">Time: 0:00/0:00</span>
+    </div>
+
+    <div id="info" class="hidden">
+        Bad Apple!! ASCII Art | Press SPACE to play/pause | Press R to restart | Arrow keys: seek
+    </div>
+
+    <div id="ascii-container"></div>
+
+    <script>
+        class BadApplePlayer {
+            constructor() {
+                this.frames = [];
+                this.currentFrame = 0;
+                this.isPlaying = false;
+                this.animationId = null;
+                this.fps = 24;
+                this.totalFrames = 0;
+                this.frameStartTime = 0; // 帧播放开始时间
+                
+                this.container = document.getElementById('ascii-container');
+                this.loading = document.getElementById('loading');
+                this.loadingText = document.getElementById('loadingText');
+                this.controls = document.getElementById('controls');
+                this.info = document.getElementById('info');
+                this.frameInfo = document.getElementById('frameInfo');
+                this.timeInfo = document.getElementById('timeInfo');
+                
+                this.init();
+            }
+
+            async init() {
+                try {
+                    await this.loadFrameData();
+                    this.setupControls();
+                    this.loading.classList.add('hidden');
+                    this.controls.classList.remove('hidden');
+                    this.info.classList.remove('hidden');
+                    this.adjustFontSize();
+                    this.autoPlay();
+                } catch (error) {
+                    console.error('Failed to load frame data:', error);
+                    this.loadingText.textContent = 'Failed to load data. Please ensure frames.json exists.';
+                }
+            }
+
+            async loadFrameData() {
+                this.loadingText.textContent = 'Downloading frame data...';
+                
+                try {
+                    const response = await fetch('frames.json');
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    this.frames = data.frames;
+                    this.fps = data.fps || 24;
+                    this.totalFrames = data.total_frames;
+                    
+                    this.loadingText.textContent = `Loaded ${this.totalFrames} frames @ ${this.fps}fps`;
+                    
+                    console.log(`Loaded ${this.totalFrames} frames`);
+                    
+                } catch (error) {
+                    throw new Error(`Failed to load frames.json: ${error.message}`);
+                }
+            }
+
+            play() {
+                if (this.isPlaying || this.frames.length === 0) return;
+                
+                this.isPlaying = true;
+                document.getElementById('playBtn').textContent = '⏸️ Pause';
+                
+                // 记录开始时间
+                this.frameStartTime = performance.now();
+                
+                // 使用requestAnimationFrame进行渲染
+                const animate = () => {
+                    if (!this.isPlaying) return;
+                    
+                    // 计算目标帧
+                    const elapsed = (performance.now() - this.frameStartTime) / 1000;
+                    const targetFrame = Math.floor(elapsed * this.fps);
+                    
+                    // 防止越界
+                    this.currentFrame = targetFrame % this.frames.length;
+                    
+                    // 更新显示
+                    this.container.textContent = this.frames[this.currentFrame];
+                    this.updateInfo();
+                    
+                    this.animationId = requestAnimationFrame(animate);
+                };
+                
+                animate();
+            }
+
+            pause() {
+                this.isPlaying = false;
+                document.getElementById('playBtn').textContent = '▶️ Play';
+                
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                    this.animationId = null;
+                }
+            }
+
+            restart() {
+                this.pause();
+                this.currentFrame = 0;
+                
+                if (this.frames.length > 0) {
+                    this.container.textContent = this.frames[0];
+                    this.updateInfo();
+                }
+            }
+
+            autoPlay() {
+                // 自动开始播放
+                setTimeout(() => {
+                    if (this.frames.length > 0) {
+                        this.container.textContent = this.frames[0];
+                        this.updateInfo();
+                        this.play();
+                    }
+                }, 500);
+            }
+
+            updateInfo() {
+                this.frameInfo.textContent = `Frame: ${this.currentFrame + 1}/${this.totalFrames}`;
+                
+                const currentSeconds = Math.floor(this.currentFrame / this.fps);
+                const totalSeconds = Math.floor(this.totalFrames / this.fps);
+                
+                const currentTime = this.formatTime(currentSeconds);
+                const totalTime = this.formatTime(totalSeconds);
+                
+                this.timeInfo.textContent = `Time: ${currentTime}/${totalTime}`;
+            }
+
+            formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            adjustFontSize() {
+                // 根据窗口大小动态调整字体大小
+                const maxWidth = window.innerWidth;
+                const maxHeight = window.innerHeight;
+                
+                // 假设字符画大约是100x40的尺寸
+                const fontSize = Math.min(maxWidth / 100, maxHeight / 45);
+                this.container.style.fontSize = Math.max(fontSize, 6) + 'px';
+            }
+
+            setupControls() {
+                document.getElementById('playBtn').onclick = () => {
+                    if (this.isPlaying) {
+                        this.pause();
+                    } else {
+                        this.play();
+                    }
+                };
+
+                document.getElementById('restartBtn').onclick = () => {
+                    this.restart();
+                };
+
+                // 键盘控制
+                document.addEventListener('keydown', (e) => {
+                    switch(e.code) {
+                        case 'Space':
+                            e.preventDefault();
+                            if (this.isPlaying) {
+                                this.pause();
+                            } else {
+                                this.play();
+                            }
+                            break;
+                        case 'KeyR':
+                            this.restart();
+                            break;
+                        case 'ArrowLeft':
+                            // 后退10帧
+                            this.currentFrame = Math.max(0, this.currentFrame - 10);
+                            if (this.frames.length > 0) {
+                                this.container.textContent = this.frames[this.currentFrame];
+                                this.updateInfo();
+                            }
+                            break;
+                        case 'ArrowRight':
+                            // 前进10帧
+                            this.currentFrame = Math.min(this.frames.length - 1, this.currentFrame + 10);
+                            if (this.frames.length > 0) {
+                                this.container.textContent = this.frames[this.currentFrame];
+                                this.updateInfo();
+                            }
+                            break;
+                    }
+                });
+            }
+        }
+
+        // 页面加载完成后初始化播放器
+        window.onload = () => {
+            new BadApplePlayer();
+        };
+
+        // 调整窗口大小时重新计算字体大小
+        window.onresize = () => {
+            const container = document.getElementById('ascii-container');
+            const maxWidth = window.innerWidth;
+            const maxHeight = window.innerHeight;
+            
+            const fontSize = Math.min(maxWidth / 100, maxHeight / 45);
+            container.style.fontSize = Math.max(fontSize, 6) + 'px';
+        };
+    </script>
+</body>
+</html>
