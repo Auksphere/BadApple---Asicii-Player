@@ -1,6 +1,6 @@
-# Bad Apple!! ASCII Art Player
+# Bad Apple!! ASCII Player
 
-一个将经典的《Bad Apple》视频转换为ASCII字符画并在终端和网页中播放的项目(使用Claude Sonnet4辅助完成）。
+一个将Bad Apple！！视频转换为ASCII字符画并在终端和网页中播放的项目(使用Claude Sonnet4辅助完成）。
 
 ## 项目结构
 
@@ -17,14 +17,14 @@ BadApple/
 
 ## 功能特性
 
-### 🖥️ 终端版播放器 (`play_ascii.py`)
+### 终端版播放器 (`play_ascii.py`)
 - **高性能渲染**: 使用NumPy向量化操作，播放流畅
 - **自动居中显示**: 字符画在终端中自动居中
 - **宽高比保持**: 保持原视频比例，画面不变形
 - **自适应尺寸**: 根据终端大小自动调整字符画尺寸
 - **调试模式**: 支持单帧调试和参数调整
 
-### 🌐 网页版播放器 (`index.html`)
+### 网页版播放器 (`index.html`)
 - **流畅播放**: 使用requestAnimationFrame实现平滑渲染
 - **循环播放**: 打开网页自动开始循环播放
 - **响应式设计**: 自动适应不同屏幕尺寸
@@ -148,7 +148,7 @@ pip install opencv-python numpy pillow
 
 ## 许可证
 
-本项目仅供学习和娱乐用途。《Bad Apple》视频版权归原作者所有。
+本项目仅供学习和娱乐用途。Bad Apple视频版权归原作者所有。
 
 ---
 
